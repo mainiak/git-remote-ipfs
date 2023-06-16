@@ -1,5 +1,9 @@
 # git-remote-ipfs
 
+[![GoDoc](https://godoc.org/github.com/mainiak/git-remote-ipfs?status.svg)](https://godoc.org/github.com/mainiak/git-remote-ipfs)
+
+![build workflow](https://github.com/mainiak/git-remote-ipfs/actions/workflows/build.yml/badge.svg)
+
 ## About
 
 A 'native' git protocol helper to push and pull git repos from [IPFS](https://ipfs.io).
@@ -14,8 +18,6 @@ Original project [by cryptix](https://github.com/cryptix/git-remote-ipfs) is no 
 ## Installation
 
 `go install github.com/mainiak/git-remote-ipfs/cmd/git-remote-ipfs@latest`
-
-See [![GoDoc](https://godoc.org/github.com/mainiak/git-remote-ipfs?status.svg)](https://godoc.org/github.com/mainiak/git-remote-ipfs) for usage.
 
 ## Usage
 
