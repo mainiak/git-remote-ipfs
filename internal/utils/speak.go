@@ -11,7 +11,7 @@ import (
 
 // speakGit acts like a git-remote-helper
 // see this for more: https://www.kernel.org/pub/software/scm/git/docs/gitremote-helpers.html
-func SpeakGit(r io.Reader, w io.Writer) error {
+func (app *App) SpeakGit(r io.Reader, w io.Writer) error {
 	//debugLog := logging.Logger("git")
 	//r = debug.NewReadLogrus(debugLog, r)
 	//w = debug.NewWriteLogrus(debugLog, w)
@@ -31,8 +31,9 @@ func SpeakGit(r io.Reader, w io.Writer) error {
 				err     error
 				head    string
 			)
-			if err = listInfoRefs(forPush); err == nil { // try .git/info/refs first
-				if head, err = listHeadRef(); err != nil {
+
+			if err = listInfoRefs(app, forPush); err == nil { // try .git/info/refs first
+				if head, err = listHeadRef(app); err != nil {
 					return err
 				}
 			} else { // alternativly iterate over the refs directory like git-remote-dropbox
@@ -40,15 +41,17 @@ func SpeakGit(r io.Reader, w io.Writer) error {
 					log.Log("msg", "for-push: should be able to push to non existant.. TODO #2")
 				}
 				log.Log("err", err, "msg", "didn't find info/refs in repo, falling back...")
-				if err = listIterateRefs(forPush); err != nil {
+				if err = listIterateRefs(app, forPush); err != nil {
 					return err
 				}
 			}
-			if len(ref2hash) == 0 {
+
+			if len(app.ref2hash) == 0 {
 				return errors.New("did not find _any_ refs...")
 			}
+
 			// output
-			for ref, hash := range ref2hash {
+			for ref, hash := range app.ref2hash {
 				if head == "" && strings.HasSuffix(ref, "master") {
 					// guessing head if it isnt set
 					head = hash
@@ -64,7 +67,7 @@ func SpeakGit(r io.Reader, w io.Writer) error {
 				if len(fetchSplit) < 2 {
 					return errors.Errorf("malformed 'fetch' command. %q", text)
 				}
-				err := fetchObject(fetchSplit[1])
+				err := fetchObject(app, fetchSplit[1])
 				if err == nil {
 					fmt.Fprintln(w)
 					continue
@@ -72,7 +75,7 @@ func SpeakGit(r io.Reader, w io.Writer) error {
 				// TODO isNotExist(err) would be nice here
 				//log.Log("sha1", fetchSplit[1], "name", fetchSplit[2], "err", err, "msg", "fetchLooseObject failed, trying packed...")
 
-				err = fetchPackedObject(fetchSplit[1])
+				err = fetchPackedObject(app, fetchSplit[1])
 				if err != nil {
 					return errors.Wrap(err, "fetchPackedObject() failed")
 				}
@@ -102,7 +105,7 @@ func SpeakGit(r io.Reader, w io.Writer) error {
 				if src == "" {
 					fmt.Fprintf(w, "error %s %s\n", dst, "delete remote dst: not supported yet - please open an issue on github")
 				} else {
-					if err := push(src, dst); err != nil {
+					if err := push(app, src, dst); err != nil {
 						fmt.Fprintf(w, "error %s %s\n", dst, err)
 						return err
 					}

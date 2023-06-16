@@ -16,12 +16,12 @@ import (
 //   - look for it in ".git/objects/substr($sha1, 0, 2)/substr($sha, 2)"
 //   - if found, download it and put it in place. (there may be a command for this)
 //   - done \o/
-func fetchObject(sha1 string) error {
-	return recurseCommit(sha1)
+func fetchObject(app *App, sha1 string) error {
+	return recurseCommit(app, sha1)
 }
 
-func recurseCommit(sha1 string) error {
-	obj, err := fetchAndWriteObj(sha1)
+func recurseCommit(app *App, sha1 string) error {
+	obj, err := fetchAndWriteObj(app, sha1)
 	if err != nil {
 		return errors.Wrapf(err, "fetchAndWriteObj(%s) commit object failed", sha1)
 	}
@@ -30,15 +30,15 @@ func recurseCommit(sha1 string) error {
 		return errors.Errorf("sha1<%s> is not a git commit object:%s ", sha1, obj)
 	}
 	if commit.Parent != "" {
-		if err := recurseCommit(commit.Parent); err != nil {
+		if err := recurseCommit(app, commit.Parent); err != nil {
 			return errors.Wrapf(err, "recurseCommit(%s) commit Parent failed", commit.Parent)
 		}
 	}
-	return fetchTree(commit.Tree)
+	return fetchTree(app, commit.Tree)
 }
 
-func fetchTree(sha1 string) error {
-	obj, err := fetchAndWriteObj(sha1)
+func fetchTree(app *App, sha1 string) error {
+	obj, err := fetchAndWriteObj(app, sha1)
 	if err != nil {
 		return errors.Wrapf(err, "fetchAndWriteObj(%s) commit tree failed", sha1)
 	}
@@ -47,7 +47,7 @@ func fetchTree(sha1 string) error {
 		return errors.Errorf("sha1<%s> is not a git tree object:%s ", sha1, obj)
 	}
 	for _, t := range entries {
-		obj, err := fetchAndWriteObj(t.SHA1Sum.String())
+		obj, err := fetchAndWriteObj(app, t.SHA1Sum.String())
 		if err != nil {
 			return errors.Wrapf(err, "fetchAndWriteObj(%s) commit tree failed", sha1)
 		}
@@ -58,16 +58,16 @@ func fetchTree(sha1 string) error {
 	return nil
 }
 
-// fetchAndWriteObj looks for the loose object under 'thisGitRepo' global git dir
+// fetchAndWriteObj looks for the loose object under 'app.thisGitRepo' global git dir
 // and usses an io.TeeReader to write it to the local repo
-func fetchAndWriteObj(sha1 string) (*git.Object, error) {
-	p := filepath.Join(ipfsRepoPath, "objects", sha1[:2], sha1[2:])
-	ipfsCat, err := ipfsShell.Cat(p)
+func fetchAndWriteObj(app *App, sha1 string) (*git.Object, error) {
+	p := filepath.Join(app.ipfsRepoPath, "objects", sha1[:2], sha1[2:])
+	ipfsCat, err := app.ipfsShell.Cat(p)
 	if err != nil {
 		return nil, errors.Wrapf(err, "shell.Cat() commit failed")
 	}
-	targetP := filepath.Join(thisGitRepo, "objects", sha1[:2], sha1[2:])
-	if err := os.MkdirAll(filepath.Join(thisGitRepo, "objects", sha1[:2]), 0700); err != nil {
+	targetP := filepath.Join(app.thisGitRepo, "objects", sha1[:2], sha1[2:])
+	if err := os.MkdirAll(filepath.Join(app.thisGitRepo, "objects", sha1[:2]), 0700); err != nil {
 		return nil, errors.Wrapf(err, "mkDirAll() failed")
 	}
 	targetObj, err := os.Create(targetP)
@@ -101,10 +101,10 @@ func fetchAndWriteObj(sha1 string) (*git.Object, error) {
 //   - if found in an <idx>, download the relevant .pack file,
 //     and feed it into `git index-pack --stdin --fix-thin` which will put it into place.
 //   - done \o/
-func fetchPackedObject(sha1 string) error {
+func fetchPackedObject(app *App, sha1 string) error {
 	// search for all index files
-	packPath := filepath.Join(ipfsRepoPath, "objects", "pack")
-	links, err := ipfsShell.List(packPath)
+	packPath := filepath.Join(app.ipfsRepoPath, "objects", "pack")
+	links, err := app.ipfsShell.List(packPath)
 	if err != nil {
 		return errors.Wrapf(err, "shell FileList(%q) failed", packPath)
 	}
@@ -118,7 +118,7 @@ func fetchPackedObject(sha1 string) error {
 		return errors.New("fetchPackedObject: no idx files found")
 	}
 	for _, idx := range indexes {
-		idxF, err := ipfsShell.Cat(idx)
+		idxF, err := app.ipfsShell.Cat(idx)
 		if err != nil {
 			return errors.Wrapf(err, "fetchPackedObject: idx<%s> cat(%s) failed", sha1, idx)
 		}
@@ -139,13 +139,13 @@ func fetchPackedObject(sha1 string) error {
 		}
 		// we found an index with our hash inside
 		pack := strings.Replace(idx, ".idx", ".pack", 1)
-		packF, err := ipfsShell.Cat(pack)
+		packF, err := app.ipfsShell.Cat(pack)
 		if err != nil {
 			return errors.Wrapf(err, "fetchPackedObject: pack<%s> open() failed", sha1)
 		}
 		b.Reset()
 		unpackIdx := exec.Command("git", "unpack-objects")
-		unpackIdx.Dir = thisGitRepo // GIT_DIR
+		unpackIdx.Dir = app.thisGitRepo // GIT_DIR
 		unpackIdx.Stdin = packF
 		unpackIdx.Stdout = &b
 		unpackIdx.Stderr = &b

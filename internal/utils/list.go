@@ -11,10 +11,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-func listInfoRefs(forPush bool) error {
-	refsCat, err := ipfsShell.Cat(filepath.Join(ipfsRepoPath, "info", "refs"))
+func listInfoRefs(app *App, forPush bool) error {
+	refsCat, err := app.ipfsShell.Cat(filepath.Join(app.ipfsRepoPath, "info", "refs"))
 	if err != nil {
-		return errors.Wrapf(err, "failed to cat info/refs from %s", ipfsRepoPath)
+		return errors.Wrapf(err, "failed to cat info/refs from %s", app.ipfsRepoPath)
 	}
 	s := bufio.NewScanner(refsCat)
 	for s.Scan() {
@@ -22,7 +22,7 @@ func listInfoRefs(forPush bool) error {
 		if len(hashRef) != 2 {
 			return errors.Errorf("processing info/refs: what is this: %v", hashRef)
 		}
-		ref2hash[hashRef[1]] = hashRef[0]
+		app.ref2hash[hashRef[1]] = hashRef[0]
 	}
 	if err := s.Err(); err != nil {
 		return errors.Wrapf(err, "ipfs.Cat(info/refs) scanner error")
@@ -30,20 +30,20 @@ func listInfoRefs(forPush bool) error {
 	return nil
 }
 
-func listHeadRef() (string, error) {
-	headCat, err := ipfsShell.Cat(filepath.Join(ipfsRepoPath, "HEAD"))
+func listHeadRef(app *App) (string, error) {
+	headCat, err := app.ipfsShell.Cat(filepath.Join(app.ipfsRepoPath, "HEAD"))
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to cat HEAD from %s", ipfsRepoPath)
+		return "", errors.Wrapf(err, "failed to cat HEAD from %s", app.ipfsRepoPath)
 	}
 	head, err := ioutil.ReadAll(headCat)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to readAll HEAD from %s", ipfsRepoPath)
+		return "", errors.Wrapf(err, "failed to readAll HEAD from %s", app.ipfsRepoPath)
 	}
 	if !bytes.HasPrefix(head, []byte("ref: ")) {
-		return "", errors.Errorf("illegal HEAD file from %s: %q", ipfsRepoPath, head)
+		return "", errors.Errorf("illegal HEAD file from %s: %q", app.ipfsRepoPath, head)
 	}
 	headRef := string(bytes.TrimSpace(head[5:]))
-	headHash, ok := ref2hash[headRef]
+	headHash, ok := app.ref2hash[headRef]
 	if !ok {
 		// use first hash in map?..
 		return "", errors.Errorf("unknown HEAD reference %q", headRef)
@@ -51,15 +51,15 @@ func listHeadRef() (string, error) {
 	return headHash, headCat.Close()
 }
 
-func listIterateRefs(forPush bool) error {
-	refsDir := filepath.Join(ipfsRepoPath, "refs")
+func listIterateRefs(app *App, forPush bool) error {
+	refsDir := filepath.Join(app.ipfsRepoPath, "refs")
 	return Walk(refsDir, func(p string, info *shell.LsLink, err error) error {
 		if err != nil {
 			return errors.Wrapf(err, "walk(%s) failed", p)
 		}
 		log.Log("event", "debug", "name", info.Name, "msg", "iterateRefs: walked to", "p", p)
 		if info.Type == 2 {
-			rc, err := ipfsShell.Cat(p)
+			rc, err := app.ipfsShell.Cat(p)
 			if err != nil {
 				return errors.Wrapf(err, "walk(%s) cat ref failed", p)
 			}
@@ -71,9 +71,9 @@ func listIterateRefs(forPush bool) error {
 				return errors.Wrapf(err, "walk(%s) cat close failed", p)
 			}
 			sha1 := strings.TrimSpace(string(data))
-			refName := strings.TrimPrefix(p, ipfsRepoPath+"/")
-			ref2hash[refName] = sha1
-			log.Log("event", "debug", "refMap", ref2hash, "msg", "ref2hash map updated")
+			refName := strings.TrimPrefix(p, app.ipfsRepoPath+"/")
+			app.ref2hash[refName] = sha1
+			log.Log("event", "debug", "refMap", app.ref2hash, "msg", "ref2hash map updated")
 		}
 		return nil
 	})
@@ -85,7 +85,7 @@ var SkipDir = errors.Errorf("walk: skipping")
 
 type WalkFunc func(path string, info *shell.LsLink, err error) error
 
-func walk(path string, info *shell.LsLink, walkFn WalkFunc) error {
+func walk(app *App, path string, info *shell.LsLink, walkFn WalkFunc) error {
 	err := walkFn(path, info, nil)
 	if err != nil {
 		if info.Type == 1 && err == SkipDir {
@@ -96,7 +96,7 @@ func walk(path string, info *shell.LsLink, walkFn WalkFunc) error {
 	if info.Type != 1 {
 		return nil
 	}
-	list, err := ipfsShell.List(path)
+	list, err := app.ipfsShell.List(path)
 	if err != nil {
 		log.Log("msg", "walk list failed", "err", err)
 
@@ -115,7 +115,7 @@ func walk(path string, info *shell.LsLink, walkFn WalkFunc) error {
 }
 
 func Walk(root string, walkFn WalkFunc) error {
-	list, err := ipfsShell.List(root)
+	list, err := app.ipfsShell.List(root)
 	if err != nil {
 		log.Log("msg", "walk root failed", "err", err)
 		return walkFn(root, nil, err)

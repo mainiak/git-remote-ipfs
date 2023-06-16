@@ -38,7 +38,6 @@ import (
 	"strings"
 
 	"github.com/cryptix/go/logging"
-	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/mainiak/git-remote-ipfs/internal/path"
 	"github.com/mainiak/git-remote-ipfs/internal/utils"
 )
@@ -57,15 +56,9 @@ func usage() {
 }
 
 var (
-	ref2hash = make(map[string]string)
-
-	ipfsShell     = shell.NewShell("localhost:5001")
-	ipfsRepoPath  string
-	thisGitRepo   string
-	thisGitRemote string
-	errc          chan<- error
-	log           logging.Interface
-	check         = logging.CheckFatal
+	errc  chan<- error
+	log   logging.Interface
+	check = logging.CheckFatal
 )
 
 func logFatal(msg string) {
@@ -78,22 +71,24 @@ func main() {
 	logging.SetupLogging(nil)
 	log = logging.Logger("git-remote-ipfs")
 
+	app := utils.GetApp()
+
 	// env var and arguments
-	thisGitRepo = os.Getenv("GIT_DIR")
-	if thisGitRepo == "" {
+	if app.thisGitRepo == "" {
 		logFatal("could not get GIT_DIR env var")
 	}
-	if thisGitRepo == ".git" {
+
+	if app.thisGitRepo == ".git" {
 		cwd, err := os.Getwd()
 		logging.CheckFatal(err)
-		thisGitRepo = filepath.Join(cwd, ".git")
+		app.thisGitRepo = filepath.Join(cwd, ".git")
 	}
 
 	var u string // repo url
 	v := len(os.Args[1:])
 	switch v {
 	case 2:
-		thisGitRemote = os.Args[1]
+		app.thisGitRemote = os.Args[1]
 		u = os.Args[2]
 	default:
 		logFatal(fmt.Sprintf("usage: unknown # of args: %d\n%v", v, os.Args[1:]))
@@ -108,12 +103,12 @@ func main() {
 	p, err := path.ParsePath(u)
 	check(err)
 
-	ipfsRepoPath = p.String()
+	app.ipfsRepoPath = p.String()
 
 	// interrupt / error handling
 	go func() {
 		check(utils.Interrupt())
 	}()
 
-	check(utils.SpeakGit(os.Stdin, os.Stdout))
+	check(app.SpeakGit(os.Stdin, os.Stdout))
 }
