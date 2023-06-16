@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	github.com/cryptix/exp v0.0.0-20191103140156-9da154296953
-	github.com/cryptix/git-remote-ipfs v0.0.0-20191219101124-241d12485ebb
 	github.com/cryptix/go v1.5.0
 	github.com/ipfs/go-cid v0.0.3
 	github.com/ipfs/go-ipfs-api v0.0.2

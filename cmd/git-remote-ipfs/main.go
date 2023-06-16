@@ -39,9 +39,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cryptix/git-remote-ipfs/internal/path"
 	"github.com/cryptix/go/logging"
 	shell "github.com/ipfs/go-ipfs-api"
+	"github.com/mainiak/git-remote-ipfs/internal/path"
 	"github.com/pkg/errors"
 )
 
