@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"os"
@@ -24,7 +24,7 @@ func fetchFullBareRepo(root string) (string, error) {
 	}
 }
 
-func interrupt() error {
+func Interrupt() error {
 	c := make(chan os.Signal)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 	return errors.Errorf("%s", <-c)
