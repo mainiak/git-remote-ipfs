@@ -1,7 +1,7 @@
 /*
 git-remote-helper implements a git-remote helper that uses the ipfs transport.
 
-TODO
+# TODO
 
 Currently assumes a IPFS Daemon at localhost:5001
 
@@ -9,13 +9,13 @@ Not completed: new Push (issue #2), IPNS, URLs like fs:/ipfs/.. (issue #3), embe
 
 ...
 
- $ git clone ipfs://ipfs/$hash/repo.git
- $ cd repo && make $stuff
- $ git commit -a -m 'done!'
- $ git push origin
- => clone-able as ipfs://ipfs/$newHash/repo.git
+	$ git clone ipfs://ipfs/$hash/repo.git
+	$ cd repo && make $stuff
+	$ git commit -a -m 'done!'
+	$ git push origin
+	=> clone-able as ipfs://ipfs/$newHash/repo.git
 
-Links
+# Links
 
 https://ipfs.io
 
