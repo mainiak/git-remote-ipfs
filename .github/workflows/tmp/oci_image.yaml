@@ -1,0 +1,63 @@
+---
+name: Gin app OCI image
+
+on:
+  ## Allow manual workflow execution
+  workflow_dispatch:
+
+jobs:
+  oci_image:
+
+    #runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+
+    strategy:
+      matrix:
+        go-version: [ '1.20.x' ]
+
+    defaults:
+      run:
+        working-directory: Gin
+
+    env:
+      DISCORD_URL: ${{ secrets.DISCORD_URL }}
+      JOB_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+    steps:
+      - name: Job URL
+        run: echo $JOB_URL
+        working-directory: /
+        if: ${{ always() }}
+
+      - name: Discord START
+        run: |
+          curl -L \
+            -X POST \
+            $DISCORD_URL \
+            -d content="START - $MSG - $JOB_URL"
+        env:
+          MSG: "__repo__: ${{ github.repository }}, __workflow__: ${{ github.workflow }}, __status__: **${{ job.status }}**, by: ${{ github.actor }}, __ref__: ${{ github.ref }}, __sha__: ${{ github.sha }}"
+        working-directory: /
+        if: ${{ always() }}
+
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - uses: ko-build/setup-ko@v0.6
+
+      - run: ko build
+
+      - name: Discord STOP
+        run: |
+          curl -L \
+            -X POST \
+            $DISCORD_URL \
+            -d content="STOP - $MSG - $JOB_URL"
+        env:
+          MSG: "__repo__: ${{ github.repository }}, __workflow__: ${{ github.workflow }}, __status__: **${{ job.status }}**, by: ${{ github.actor }}, __ref__: ${{ github.ref }}, __sha__: ${{ github.sha }}"
+        working-directory: /
+        if: ${{ always() }}

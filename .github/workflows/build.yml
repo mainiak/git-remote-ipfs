@@ -1,0 +1,84 @@
+## GitHub Action main workflow
+# https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+---
+name: Build
+
+on:
+  push:
+#    branches: [main]
+#  pull_request:
+#    branches: [main]
+
+  ## Allow manual workflow execution
+  workflow_dispatch:
+
+
+jobs:
+  build:
+
+    #runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+
+    strategy:
+      matrix:
+        go-version: [ '1.20.x' ]
+
+    env:
+      DISCORD_URL: ${{ secrets.DISCORD_URL }}
+      JOB_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+    steps:
+      - name: Job URL
+        run: echo $JOB_URL
+        working-directory: /
+        if: ${{ always() }}
+
+      - uses: actions/checkout@v3
+
+      - name: Discord START
+        run: |
+          curl -L \
+            -X POST \
+            $DISCORD_URL \
+            -d content="START - $MSG - $JOB_URL"
+        env:
+          MSG: "__repo__: ${{ github.repository }}, __workflow__: ${{ github.workflow }}, __status__: **${{ job.status }}**, by: ${{ github.actor }}, __ref__: ${{ github.ref }}, __sha__: ${{ github.sha }}"
+        working-directory: /
+        if: ${{ env.DISCORD_URL != 0 }}
+
+      - name: Info
+        run: |
+          echo "runner.os: ${{ runner.os }}"
+          echo "github.event_name: ${{ github.event_name }}"
+          echo "github.ref: ${{ github.ref }}"
+          echo "github.repository: ${{ github.repository }}"
+          echo "github.workspace: ${{ github.workspace }}"
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      #- name: Install Ginkgo test framework
+      #  run: |
+      #    go install github.com/onsi/ginkgo/v2/ginkgo || true
+
+      - name: Build apps
+        run: |
+          go build -o build/ -v ./...
+
+      - run: ls ${{ github.workspace }}/build
+
+      - name: Go Test
+        run: go test -v ./...
+
+      - name: Discord STOP
+        run: |
+          curl -L \
+            -X POST \
+            $DISCORD_URL \
+            -d content="STOP - $MSG - $JOB_URL"
+        env:
+          MSG: "__repo__: ${{ github.repository }}, __workflow__: ${{ github.workflow }}, __status__: **${{ job.status }}**, by: ${{ github.actor }}, __ref__: ${{ github.ref }}, __sha__: ${{ github.sha }}"
+        working-directory: /
+        if: ${{ env.DISCORD_URL != 0 }}
