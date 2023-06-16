@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/cryptix/exp/git"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/pkg/errors"
 )
 
@@ -134,7 +136,7 @@ func fetchPackedObject(app *App, sha1 string) error {
 		}
 		cmdOut := b.String()
 		if !strings.Contains(cmdOut, sha1) {
-			log.Log("idx", filepath.Base(idx), "event", "debug", "msg", "git show-index: sha1 not in index, next idx file")
+			log.Debug("idx", filepath.Base(idx), "event", "debug", "msg", "git show-index: sha1 not in index, next idx file")
 			continue
 		}
 		// we found an index with our hash inside

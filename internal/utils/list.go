@@ -9,6 +9,7 @@ import (
 
 	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 func listInfoRefs(app *App, forPush bool) error {
@@ -53,11 +54,13 @@ func listHeadRef(app *App) (string, error) {
 
 func listIterateRefs(app *App, forPush bool) error {
 	refsDir := filepath.Join(app.ipfsRepoPath, "refs")
-	return Walk(refsDir, func(p string, info *shell.LsLink, err error) error {
+	return Walk(app, refsDir, func(p string, info *shell.LsLink, err error) error {
 		if err != nil {
 			return errors.Wrapf(err, "walk(%s) failed", p)
 		}
-		log.Log("event", "debug", "name", info.Name, "msg", "iterateRefs: walked to", "p", p)
+
+		log.Debug("event", "debug", "name", info.Name, "msg", "iterateRefs: walked to", "p", p)
+
 		if info.Type == 2 {
 			rc, err := app.ipfsShell.Cat(p)
 			if err != nil {
@@ -73,7 +76,7 @@ func listIterateRefs(app *App, forPush bool) error {
 			sha1 := strings.TrimSpace(string(data))
 			refName := strings.TrimPrefix(p, app.ipfsRepoPath+"/")
 			app.ref2hash[refName] = sha1
-			log.Log("event", "debug", "refMap", app.ref2hash, "msg", "ref2hash map updated")
+			log.Debug("event", "debug", "refMap", app.ref2hash, "msg", "ref2hash map updated")
 		}
 		return nil
 	})
@@ -98,13 +101,13 @@ func walk(app *App, path string, info *shell.LsLink, walkFn WalkFunc) error {
 	}
 	list, err := app.ipfsShell.List(path)
 	if err != nil {
-		log.Log("msg", "walk list failed", "err", err)
+		log.Debug("msg", "walk list failed", "err", err)
 
 		return walkFn(path, info, err)
 	}
 	for _, lnk := range list {
 		fname := filepath.Join(path, lnk.Name)
-		err = walk(fname, lnk, walkFn)
+		err = walk(app, fname, lnk, walkFn)
 		if err != nil {
 			if lnk.Type != 1 || err != SkipDir {
 				return err
@@ -114,15 +117,15 @@ func walk(app *App, path string, info *shell.LsLink, walkFn WalkFunc) error {
 	return nil
 }
 
-func Walk(root string, walkFn WalkFunc) error {
+func Walk(app *App, root string, walkFn WalkFunc) error {
 	list, err := app.ipfsShell.List(root)
 	if err != nil {
-		log.Log("msg", "walk root failed", "err", err)
+		log.Debug("msg", "walk root failed", "err", err)
 		return walkFn(root, nil, err)
 	}
 	for _, l := range list {
 		fname := filepath.Join(root, l.Name)
-		if err := walk(fname, l, walkFn); err != nil {
+		if err := walk(app, fname, l, walkFn); err != nil {
 			return err
 		}
 	}

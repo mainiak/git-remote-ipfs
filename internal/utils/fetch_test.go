@@ -31,7 +31,7 @@ func checkInstalled(t *testing.T) {
 	var err error
 	gitPath, err = exec.LookPath("git")
 	checkFatal(t, err)
-	out, err := exec.Command("go", "install", "github.com/cryptix/git-remote-ipfs").CombinedOutput()
+	out, err := exec.Command("go", "install", "github.com/mainiak/git-remote-ipfs/cmd/git-remote-ipfs@latest").CombinedOutput()
 	if len(out) > 0 {
 		t.Log(fmt.Sprintf("%q", string(out)))
 	}

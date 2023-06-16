@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // speakGit acts like a git-remote-helper
@@ -38,9 +39,9 @@ func (app *App) SpeakGit(r io.Reader, w io.Writer) error {
 				}
 			} else { // alternativly iterate over the refs directory like git-remote-dropbox
 				if forPush {
-					log.Log("msg", "for-push: should be able to push to non existant.. TODO #2")
+					log.Debug("msg", "for-push: should be able to push to non existant.. TODO #2")
 				}
-				log.Log("err", err, "msg", "didn't find info/refs in repo, falling back...")
+				log.Error("err", err, "msg", "didn't find info/refs in repo, falling back...")
 				if err = listIterateRefs(app, forPush); err != nil {
 					return err
 				}
@@ -101,7 +102,7 @@ func (app *App) SpeakGit(r io.Reader, w io.Writer) error {
 					"src", src,
 					"dst", dst,
 				}
-				log.Log(append(f, "msg", "got push"))
+				log.Debug(append(f, "msg", "got push"))
 				if src == "" {
 					fmt.Fprintf(w, "error %s %s\n", dst, "delete remote dst: not supported yet - please open an issue on github")
 				} else {

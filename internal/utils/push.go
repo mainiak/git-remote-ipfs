@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 func push(app *App, src, dst string) error {
@@ -54,7 +55,7 @@ func push(app *App, src, dst string) error {
 			if p.Err != nil {
 				return p.Err
 			}
-			log.Log("sha1", p.Sha1, "mhash", p.MHash, "msg", "added")
+			log.Debug("sha1", p.Sha1, "mhash", p.MHash, "msg", "added")
 			objHash2multi[p.Sha1] = p.MHash
 			n--
 		}
@@ -69,7 +70,7 @@ func push(app *App, src, dst string) error {
 			return errors.Wrapf(err, "patchLink failed")
 		}
 		root = newRoot
-		log.Log("newRoot", newRoot, "sha1", sha1, "msg", "updated object")
+		log.Debug("newRoot", newRoot, "sha1", sha1, "msg", "updated object")
 	}
 	srcSha1, err := gitRefHash(app, src)
 	if err != nil {
@@ -92,26 +93,26 @@ func push(app *App, src, dst string) error {
 	if err != nil {
 		// TODO:print "fetch first" to git
 		err = errors.Wrapf(err, "patchLink(%s) failed", app.ipfsRepoPath)
-		log.Log("err", err, "msg", "shell.PatchLink failed")
+		log.Error("err", err, "msg", "shell.PatchLink failed")
 		return errors.Errorf("fetch first")
 	}
-	log.Log("newRoot", root, "dst", dst, "hash", srcSha1, "msg", "updated ref")
+	log.Debug("newRoot", root, "dst", dst, "hash", srcSha1, "msg", "updated ref")
 	// invalidate info/refs and HEAD(?)
 	// TODO: unclean: need to put other revs, too make a soft git update-server-info maybe
 	noInfoRefsHash, err := app.ipfsShell.Patch(root, "rm-link", "info/refs")
 	if err == nil {
-		log.Log("newRoot", noInfoRefsHash, "msg", "rm-link'ed info/refs")
+		log.Debug("newRoot", noInfoRefsHash, "msg", "rm-link'ed info/refs")
 		root = noInfoRefsHash
 	} else {
 		// todo shell.IsNotExists() ?
-		log.Log("err", err, "msg", "shell.Patch rm-link info/refs failed - might be okay... TODO")
+		log.Error("err", err, "msg", "shell.Patch rm-link info/refs failed - might be okay... TODO")
 	}
 	newRemoteURL := fmt.Sprintf("ipfs:///ipfs/%s", root)
-	updateRepoCMD := exec.Command("git", "remote", "set-url", thisGitRemote, newRemoteURL)
+	updateRepoCMD := exec.Command("git", "remote", "set-url", app.thisGitRemote, newRemoteURL)
 	out, err := updateRepoCMD.CombinedOutput()
 	if err != nil {
 		return errors.Wrapf(err, "updating remote url failed\nOut:%s", string(out))
 	}
-	log.Log("msg", "remote updated", "address", newRemoteURL)
+	log.Debug("msg", "remote updated", "address", newRemoteURL)
 	return nil
 }

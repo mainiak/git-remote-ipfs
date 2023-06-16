@@ -37,10 +37,29 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cryptix/go/logging"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/mainiak/git-remote-ipfs/internal/path"
 	"github.com/mainiak/git-remote-ipfs/internal/utils"
 )
+
+func init() {
+	// Log as JSON instead of the default ASCII formatter.
+	log.SetFormatter(&log.JSONFormatter{})
+
+	// Output to stdout instead of the default stderr
+	// Can be any io.Writer, see below for File example
+	log.SetOutput(os.Stdout)
+
+	// Allow user to toggle level of output
+	debug_str, debug_exists := os.LookupEnv("DEBUG_LEVEL")
+	if debug_exists && debug_str == "DEBUG" {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		// Only log the warning severity or above.
+		log.SetLevel(log.WarnLevel)
+	}
+}
 
 const usageMsg = `usage git-remote-ipfs <repository> [<URL>]
 supports:
@@ -56,31 +75,25 @@ func usage() {
 }
 
 var (
-	errc  chan<- error
-	log   logging.Interface
-	check = logging.CheckFatal
+	errc chan<- error
 )
 
-func logFatal(msg string) {
-	log.Log("event", "fatal", "msg", msg)
-	os.Exit(1)
-}
-
 func main() {
-	// logging
-	logging.SetupLogging(nil)
-	log = logging.Logger("git-remote-ipfs")
+	var err error
+	//log = logging.Logger("git-remote-ipfs")
 
 	app := utils.GetApp()
 
 	// env var and arguments
 	if app.thisGitRepo == "" {
-		logFatal("could not get GIT_DIR env var")
+		log.Fatal("could not get GIT_DIR env var")
 	}
 
 	if app.thisGitRepo == ".git" {
 		cwd, err := os.Getwd()
-		logging.CheckFatal(err)
+		if err != nil {
+			panic(err)
+		}
 		app.thisGitRepo = filepath.Join(cwd, ".git")
 	}
 
@@ -91,7 +104,7 @@ func main() {
 		app.thisGitRemote = os.Args[1]
 		u = os.Args[2]
 	default:
-		logFatal(fmt.Sprintf("usage: unknown # of args: %d\n%v", v, os.Args[1:]))
+		log.Fatal(fmt.Sprintf("usage: unknown # of args: %d\n%v", v, os.Args[1:]))
 	}
 
 	// parse passed URL
@@ -100,15 +113,24 @@ func main() {
 			u = "/ipfs/" + u[len(pref):]
 		}
 	}
-	p, err := path.ParsePath(u)
-	check(err)
+
+	var p path.Path
+	p, err = path.ParsePath(u)
+	if err != nil {
+		panic(err)
+	}
 
 	app.ipfsRepoPath = p.String()
 
 	// interrupt / error handling
 	go func() {
-		check(utils.Interrupt())
+		if err := utils.Interrupt(); err != nil {
+			panic(err)
+		}
 	}()
 
-	check(app.SpeakGit(os.Stdin, os.Stdout))
+	err = app.SpeakGit(os.Stdin, os.Stdout)
+	if err != nil {
+		panic(err)
+	}
 }
