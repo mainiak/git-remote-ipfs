@@ -85,23 +85,23 @@ func main() {
 	app := utils.GetApp()
 
 	// env var and arguments
-	if app.thisGitRepo == "" {
+	if app.ThisGitRepo == "" {
 		log.Fatal("could not get GIT_DIR env var")
 	}
 
-	if app.thisGitRepo == ".git" {
+	if app.ThisGitRepo == ".git" {
 		cwd, err := os.Getwd()
 		if err != nil {
 			panic(err)
 		}
-		app.thisGitRepo = filepath.Join(cwd, ".git")
+		app.ThisGitRepo = filepath.Join(cwd, ".git")
 	}
 
 	var u string // repo url
 	v := len(os.Args[1:])
 	switch v {
 	case 2:
-		app.thisGitRemote = os.Args[1]
+		app.ThisGitRemote = os.Args[1]
 		u = os.Args[2]
 	default:
 		log.Fatal(fmt.Sprintf("usage: unknown # of args: %d\n%v", v, os.Args[1:]))
@@ -120,7 +120,7 @@ func main() {
 		panic(err)
 	}
 
-	app.ipfsRepoPath = p.String()
+	app.IpfsRepoPath = p.String()
 
 	// interrupt / error handling
 	go func() {

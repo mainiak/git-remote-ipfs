@@ -60,9 +60,9 @@ func push(app *App, src, dst string) error {
 			n--
 		}
 	}
-	root, err := app.ipfsShell.ResolvePath(app.ipfsRepoPath)
+	root, err := app.ipfsShell.ResolvePath(app.IpfsRepoPath)
 	if err != nil {
-		return errors.Wrapf(err, "resolvePath(%s) failed", app.ipfsRepoPath)
+		return errors.Wrapf(err, "resolvePath(%s) failed", app.IpfsRepoPath)
 	}
 	for sha1, mhash := range objHash2multi {
 		newRoot, err := app.ipfsShell.PatchLink(root, filepath.Join("objects", sha1[:2], sha1[2:]), mhash, true)
@@ -92,7 +92,7 @@ func push(app *App, src, dst string) error {
 	root, err = app.ipfsShell.PatchLink(root, dst, mhash, true)
 	if err != nil {
 		// TODO:print "fetch first" to git
-		err = errors.Wrapf(err, "patchLink(%s) failed", app.ipfsRepoPath)
+		err = errors.Wrapf(err, "patchLink(%s) failed", app.IpfsRepoPath)
 		log.Error("err", err, "msg", "shell.PatchLink failed")
 		return errors.Errorf("fetch first")
 	}
@@ -108,7 +108,7 @@ func push(app *App, src, dst string) error {
 		log.Error("err", err, "msg", "shell.Patch rm-link info/refs failed - might be okay... TODO")
 	}
 	newRemoteURL := fmt.Sprintf("ipfs:///ipfs/%s", root)
-	updateRepoCMD := exec.Command("git", "remote", "set-url", app.thisGitRemote, newRemoteURL)
+	updateRepoCMD := exec.Command("git", "remote", "set-url", app.ThisGitRemote, newRemoteURL)
 	out, err := updateRepoCMD.CombinedOutput()
 	if err != nil {
 		return errors.Wrapf(err, "updating remote url failed\nOut:%s", string(out))

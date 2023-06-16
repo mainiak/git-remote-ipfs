@@ -13,9 +13,9 @@ import (
 )
 
 func listInfoRefs(app *App, forPush bool) error {
-	refsCat, err := app.ipfsShell.Cat(filepath.Join(app.ipfsRepoPath, "info", "refs"))
+	refsCat, err := app.ipfsShell.Cat(filepath.Join(app.IpfsRepoPath, "info", "refs"))
 	if err != nil {
-		return errors.Wrapf(err, "failed to cat info/refs from %s", app.ipfsRepoPath)
+		return errors.Wrapf(err, "failed to cat info/refs from %s", app.IpfsRepoPath)
 	}
 	s := bufio.NewScanner(refsCat)
 	for s.Scan() {
@@ -32,16 +32,16 @@ func listInfoRefs(app *App, forPush bool) error {
 }
 
 func listHeadRef(app *App) (string, error) {
-	headCat, err := app.ipfsShell.Cat(filepath.Join(app.ipfsRepoPath, "HEAD"))
+	headCat, err := app.ipfsShell.Cat(filepath.Join(app.IpfsRepoPath, "HEAD"))
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to cat HEAD from %s", app.ipfsRepoPath)
+		return "", errors.Wrapf(err, "failed to cat HEAD from %s", app.IpfsRepoPath)
 	}
 	head, err := ioutil.ReadAll(headCat)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to readAll HEAD from %s", app.ipfsRepoPath)
+		return "", errors.Wrapf(err, "failed to readAll HEAD from %s", app.IpfsRepoPath)
 	}
 	if !bytes.HasPrefix(head, []byte("ref: ")) {
-		return "", errors.Errorf("illegal HEAD file from %s: %q", app.ipfsRepoPath, head)
+		return "", errors.Errorf("illegal HEAD file from %s: %q", app.IpfsRepoPath, head)
 	}
 	headRef := string(bytes.TrimSpace(head[5:]))
 	headHash, ok := app.ref2hash[headRef]
@@ -53,7 +53,7 @@ func listHeadRef(app *App) (string, error) {
 }
 
 func listIterateRefs(app *App, forPush bool) error {
-	refsDir := filepath.Join(app.ipfsRepoPath, "refs")
+	refsDir := filepath.Join(app.IpfsRepoPath, "refs")
 	return Walk(app, refsDir, func(p string, info *shell.LsLink, err error) error {
 		if err != nil {
 			return errors.Wrapf(err, "walk(%s) failed", p)
@@ -74,7 +74,7 @@ func listIterateRefs(app *App, forPush bool) error {
 				return errors.Wrapf(err, "walk(%s) cat close failed", p)
 			}
 			sha1 := strings.TrimSpace(string(data))
-			refName := strings.TrimPrefix(p, app.ipfsRepoPath+"/")
+			refName := strings.TrimPrefix(p, app.IpfsRepoPath+"/")
 			app.ref2hash[refName] = sha1
 			log.Debug("event", "debug", "refMap", app.ref2hash, "msg", "ref2hash map updated")
 		}

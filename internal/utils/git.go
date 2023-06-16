@@ -23,10 +23,10 @@ func gitListObjects(app *App, ref string, exclude []string) ([]string, error) {
 	}
 	revList := exec.Command("git", args...)
 	// dunno why - sometime git doesnt want to work on the inner repo/.git
-	if strings.HasSuffix(app.thisGitRepo, ".git") {
-		app.thisGitRepo = filepath.Dir(app.thisGitRepo)
+	if strings.HasSuffix(app.ThisGitRepo, ".git") {
+		app.ThisGitRepo = filepath.Dir(app.ThisGitRepo)
 	}
-	revList.Dir = app.thisGitRepo // GIT_DIR
+	revList.Dir = app.ThisGitRepo // GIT_DIR
 	out, err := revList.CombinedOutput()
 	if err != nil {
 		return nil, errors.Wrapf(err, "rev-list failed: %s\n%q", err, string(out))
@@ -78,14 +78,14 @@ func gitFlattenObject(app *App, sha1 string) (io.Reader, error) {
 
 func gitCatKind(app *App, sha1 string) (string, error) {
 	catFile := exec.Command("git", "cat-file", "-t", sha1)
-	catFile.Dir = app.thisGitRepo // GIT_DIR
+	catFile.Dir = app.ThisGitRepo // GIT_DIR
 	out, err := catFile.CombinedOutput()
 	return strings.TrimSpace(string(out)), err
 }
 
 func gitCatSize(app *App, sha1 string) (int64, error) {
 	catFile := exec.Command("git", "cat-file", "-s", sha1)
-	catFile.Dir = app.thisGitRepo // GIT_DIR
+	catFile.Dir = app.ThisGitRepo // GIT_DIR
 	out, err := catFile.CombinedOutput()
 	if err != nil {
 		return -1, errors.Wrapf(err, "catSize(%s): run failed", sha1)
@@ -95,7 +95,7 @@ func gitCatSize(app *App, sha1 string) (int64, error) {
 
 func gitCatData(app *App, sha1, kind string) (io.Reader, error) {
 	catFile := exec.Command("git", "cat-file", kind, sha1)
-	catFile.Dir = app.thisGitRepo // GIT_DIR
+	catFile.Dir = app.ThisGitRepo // GIT_DIR
 	stdout, err := catFile.StdoutPipe()
 	if err != nil {
 		return nil, errors.Wrapf(err, "catData(%s): stdoutPipe failed", sha1)
@@ -120,14 +120,14 @@ func gitCatData(app *App, sha1, kind string) (io.Reader, error) {
 
 func gitRefHash(app *App, ref string) (string, error) {
 	refParse := exec.Command("git", "rev-parse", ref)
-	refParse.Dir = app.thisGitRepo // GIT_DIR
+	refParse.Dir = app.ThisGitRepo // GIT_DIR
 	out, err := refParse.CombinedOutput()
 	return strings.TrimSpace(string(out)), err
 }
 
 func gitIsAncestor(app *App, a, ref string) error {
 	mergeBase := exec.Command("git", "merge-base", "--is-ancestor", a, ref)
-	mergeBase.Dir = app.thisGitRepo // GIT_DIR
+	mergeBase.Dir = app.ThisGitRepo // GIT_DIR
 	if out, err := mergeBase.CombinedOutput(); err != nil {
 		return errors.Wrapf(err, "merge-base failed: %q", string(out))
 	}

@@ -60,16 +60,16 @@ func fetchTree(app *App, sha1 string) error {
 	return nil
 }
 
-// fetchAndWriteObj looks for the loose object under 'app.thisGitRepo' global git dir
+// fetchAndWriteObj looks for the loose object under 'app.ThisGitRepo' global git dir
 // and usses an io.TeeReader to write it to the local repo
 func fetchAndWriteObj(app *App, sha1 string) (*git.Object, error) {
-	p := filepath.Join(app.ipfsRepoPath, "objects", sha1[:2], sha1[2:])
+	p := filepath.Join(app.IpfsRepoPath, "objects", sha1[:2], sha1[2:])
 	ipfsCat, err := app.ipfsShell.Cat(p)
 	if err != nil {
 		return nil, errors.Wrapf(err, "shell.Cat() commit failed")
 	}
-	targetP := filepath.Join(app.thisGitRepo, "objects", sha1[:2], sha1[2:])
-	if err := os.MkdirAll(filepath.Join(app.thisGitRepo, "objects", sha1[:2]), 0700); err != nil {
+	targetP := filepath.Join(app.ThisGitRepo, "objects", sha1[:2], sha1[2:])
+	if err := os.MkdirAll(filepath.Join(app.ThisGitRepo, "objects", sha1[:2]), 0700); err != nil {
 		return nil, errors.Wrapf(err, "mkDirAll() failed")
 	}
 	targetObj, err := os.Create(targetP)
@@ -105,7 +105,7 @@ func fetchAndWriteObj(app *App, sha1 string) (*git.Object, error) {
 //   - done \o/
 func fetchPackedObject(app *App, sha1 string) error {
 	// search for all index files
-	packPath := filepath.Join(app.ipfsRepoPath, "objects", "pack")
+	packPath := filepath.Join(app.IpfsRepoPath, "objects", "pack")
 	links, err := app.ipfsShell.List(packPath)
 	if err != nil {
 		return errors.Wrapf(err, "shell FileList(%q) failed", packPath)
@@ -147,7 +147,7 @@ func fetchPackedObject(app *App, sha1 string) error {
 		}
 		b.Reset()
 		unpackIdx := exec.Command("git", "unpack-objects")
-		unpackIdx.Dir = app.thisGitRepo // GIT_DIR
+		unpackIdx.Dir = app.ThisGitRepo // GIT_DIR
 		unpackIdx.Stdin = packF
 		unpackIdx.Stdout = &b
 		unpackIdx.Stderr = &b
