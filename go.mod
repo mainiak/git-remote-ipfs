@@ -1,6 +1,6 @@
-module github.com/cryptix/git-remote-ipfs
+module github.com/mainiak/git-remote-ipfs
 
-go 1.13
+go 1.20
 
 require (
 	github.com/cryptix/exp v0.0.0-20191103140156-9da154296953
